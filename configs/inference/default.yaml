@@ -1,0 +1,7 @@
+# @package _global_
+inference:
+  checkpoint: checkpoints/convnext/best.pth
+  video_path: null
+  output_path: outputs/predictions
+  threshold: 0.5
+  save_frames: false

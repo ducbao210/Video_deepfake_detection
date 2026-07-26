@@ -1,0 +1,21 @@
+# @package _global_
+model:
+  name: hybrid_bilstm
+
+  cnn:
+    backbone: convnext_small
+    pretrained: true
+    freeze_backbone: false
+
+  lstm:
+    hidden_size: 256
+    num_layers: 2
+    bidirectional: true
+    dropout: 0.3
+
+  sequence:
+    pooling: attention
+
+  classifier:
+    dropout: 0.3
+    num_classes: 2

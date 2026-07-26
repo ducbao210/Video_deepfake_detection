@@ -1,0 +1,9 @@
+# @package _global_
+kd:
+  teacher:
+    model: video_swin
+    checkpoint: checkpoints/video_swin/best.pth
+
+  student:
+    model: convnext
+    checkpoint: null

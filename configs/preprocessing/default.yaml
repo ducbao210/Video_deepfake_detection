@@ -1,0 +1,8 @@
+# @package _global_
+preprocessing:
+  frame_count: 15
+  image_size: [224, 224]
+  face_crop: true
+  face_detector: retinaface
+  padding_factor: 1.3
+  num_workers: 4

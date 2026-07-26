@@ -1,0 +1,12 @@
+# @package _global_
+callbacks:
+  early_stopping:
+    enabled: true
+    patience: 5
+    monitor: val_auc
+    mode: max
+
+  model_checkpoint:
+    monitor: val_auc
+    mode: max
+    save_top_k: 1

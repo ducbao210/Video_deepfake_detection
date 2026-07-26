@@ -1,0 +1,17 @@
+# @package _global_
+training:
+  epochs: 10
+  learning_rate: 1e-4
+  weight_decay: 1e-5
+  optimizer:
+    name: adamw
+
+  scheduler:
+    name: cosine
+    min_lr: 1e-6
+    
+  warmup_epochs: 3
+  mixed_precision: true
+  gradient_clip: 1.0
+  label_smoothing: 0.0
+  resume_checkpoint: null

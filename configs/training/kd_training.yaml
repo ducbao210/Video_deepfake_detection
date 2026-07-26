@@ -1,0 +1,17 @@
+# @package _global_
+training:
+  epochs: 20
+  learning_rate: 5e-5
+  weight_decay: 1e-5
+  optimizer:
+    name: adamw
+
+  scheduler:
+    name: cosine
+
+  temperature: 4.0
+  alpha: 0.7
+  hard_loss_weight: 0.3
+  soft_loss_weight: 0.7
+  mixed_precision: true
+  gradient_clip: 1.0

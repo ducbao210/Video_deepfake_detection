@@ -1,0 +1,13 @@
+# @package _global_
+model:
+  name: convnext
+
+  architecture:
+    backbone: convnext_small
+    pretrained: true
+    freeze_backbone: false
+    global_pool: avg
+
+  classifier:
+    dropout: 0.3
+    num_classes: 2

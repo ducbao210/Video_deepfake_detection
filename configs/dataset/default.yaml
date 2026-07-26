@@ -1,0 +1,16 @@
+# @package _global_
+dataset:
+  name: DFD
+  num_classes: 2
+  image_size: 224
+  sequence_length: 16
+  root: ${paths.data.processed_dir}
+  train_csv: ${paths.data.train_csv}
+  val_csv: ${paths.data.val_csv}
+  test_csv: ${paths.data.test_csv}
+
+split:
+  train: 0.7
+  val: 0.15
+  test: 0.15
+  random_seed: 42

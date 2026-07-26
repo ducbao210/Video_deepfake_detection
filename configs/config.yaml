@@ -1,0 +1,20 @@
+# configs/config.yaml
+defaults:
+  - paths: default
+  - dataset: default
+  - dataloader: default
+  - preprocessing: default
+  - preprocessing/transforms: default
+  - model: convnext
+  - training: default
+  - inference: default
+  - callbacks: default
+  - logging: default
+  - _self_
+
+project_name: deepfake-detection
+experiment_name: ${model.name}
+seed: 42
+mode: train
+device: auto
+output_dir: outputs/${experiment_name}/${now:%Y-%m-%d_%H-%M-%S}
