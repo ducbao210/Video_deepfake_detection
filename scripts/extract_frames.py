@@ -18,8 +18,9 @@ from src.utils import get_logger
 
 def extract_frames_from_video(video_path, output_dir, frame_count, frame_size):
     """
-    Hàm trích xuất frame cốt lõi, không phụ thuộc vào OmegaConf/DictConfig.
+    Core frame extraction function that does not depend on OmegaConf or DictConfig.
     """
+
     cap = cv2.VideoCapture(str(video_path))
 
     if not cap.isOpened():
@@ -48,7 +49,7 @@ def extract_frames_from_video(video_path, output_dir, frame_count, frame_size):
     extracted_count = 0
     saved_idx = 0
 
-    # Read sequentially instead of using cap.set()
+    # Read frames sequentially instead of using cap.set()
     while True:
         ret, frame = cap.read()
 
@@ -80,9 +81,10 @@ def extract_frames_from_video(video_path, output_dir, frame_count, frame_size):
 
 def process_video(video_path, raw_dir, processed_dir, frame_count, image_size):
     """
-    Worker cho ProcessPool.
-    Lưu ý: Các tham số truyền vào (đặc biệt qua multiprocessing) nên là dữ liệu nguyên thủy (primitive types).
+    Worker function for ProcessPool.
+    Note: Parameters passed through multiprocessing should be primitive data types whenever possible.
     """
+
     video_path = Path(video_path)
     raw_dir = Path(raw_dir)
     processed_dir = Path(processed_dir)
@@ -163,10 +165,9 @@ def main(cfg: DictConfig):
             except Exception as e:
                 failed.append(str(e))
 
-    logger.info("\nDone.")
-
+    logger.info("\nFrame extraction completed.")
     if failed:
-        logger.info(f"Failed: {len(failed)} videos")
+        logger.info(f"Failed to process {len(failed)} videos:")
         for item in failed:
             logger.info(item)
 
