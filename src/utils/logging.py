@@ -21,7 +21,7 @@ def get_logger(log_cfg, name="DeepfakeDetection", log_file="train.log"):
 
     logger = logging.getLogger(name)
 
-    # Tránh add handler nhiều lần
+    # Prevent adding duplicate handlers
     if logger.handlers:
         return logger
 
