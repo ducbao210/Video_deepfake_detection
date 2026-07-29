@@ -2,5 +2,5 @@
 huggingface:
   enabled: true  
   repo_id: "ducbao210/video-deepfake-detection"
-  path_in_repo: checkpoints
+  path_in_repo: checkpoints/${experiment_name}
   token: null
