@@ -1,0 +1,13 @@
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
+WORKDIR /app
+
+RUN pip install gradio==5.9.1 requests==2.32.3
+
+COPY frontend/ ./frontend/
+
+ENV API_URL=http://backend:8000
+EXPOSE 7860
+
+CMD ["python", "frontend/app.py"]
