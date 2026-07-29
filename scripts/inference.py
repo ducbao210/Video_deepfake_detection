@@ -17,18 +17,18 @@ from src.models import build_model
 
 def extract_frames_memory(video_path, frame_count, image_size):
     """
-    Trích xuất một số lượng frame cố định (uniform sampling) từ video.
-    Trả về danh sách các numpy array (RGB).
+    Extract a fixed number of frames from a video using uniform sampling.
+    Returns a list of RGB NumPy arrays.
     """
+
     cap = cv2.VideoCapture(str(video_path))
     if not cap.isOpened():
-        raise ValueError(f"Không thể mở video tại đường dẫn: {video_path}")
+        raise ValueError(f"Unable to open video: {video_path}")
 
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     if total_frames <= 0:
         cap.release()
-        raise ValueError("Video không hợp lệ hoặc không có khung hình.")
-
+        raise ValueError("Invalid video or no frames were found.")
     target_num_frames = min(frame_count, total_frames)
     frame_indices = set(np.linspace(0, total_frames - 1, target_num_frames, dtype=int))
 
@@ -51,7 +51,7 @@ def extract_frames_memory(video_path, frame_count, image_size):
 
     cap.release()
 
-    # Padding frame cuối nếu chưa đủ số lượng yêu cầu
+    # Pad with the last frame if fewer than the required number of frames were extracted
     while len(frames) < frame_count:
         frames.append(frames[-1].copy())
 
@@ -64,7 +64,7 @@ def main(cfg: DictConfig):
 
     video_path = cfg.inference.video_path
     if not video_path or not Path(video_path).exists():
-        logger.error(f"Đường dẫn video không hợp lệ: {video_path}")
+        logger.error(f"Invalid video path: {video_path}")
         return
 
     device = torch.device(
@@ -73,17 +73,17 @@ def main(cfg: DictConfig):
         else ("cuda" if torch.cuda.is_available() else "cpu")
     )
 
-    # 1. Khởi tạo Model
+    # Initialize the model
     model = build_model(cfg).to(device)
     checkpoint_path = cfg.inference.checkpoint
 
-    logger.info(f"Đang tải trọng số từ: {checkpoint_path}")
+    logger.info(f"Loading model weights from: {checkpoint_path}")
     checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
-    # 2. Xử lý Video (Trích xuất & Transform Frame)
-    logger.info(f"Đang phân tích video: {video_path}")
+    # Process the video (extract frames and apply transforms)
+    logger.info(f"Analyzing video: {video_path}")
     frame_count = cfg.preprocessing.frame_count
     image_size = cfg.preprocessing.image_size
 
@@ -92,23 +92,23 @@ def main(cfg: DictConfig):
 
     transformed_frames = [val_transforms(frame) for frame in raw_frames]
 
-    # Định dạng tensor thành (B, T, C, H, W)
+    # Format the tensor as (B, T, C, H, W)
     input_tensor = torch.stack(transformed_frames).unsqueeze(0).to(device)
 
-    # 3. Chạy Inference
+    # Run inference
     threshold = cfg.inference.threshold
     with torch.inference_mode():
         logits = model(input_tensor)
-        # Lấy class index 1 (fake/manipulated)
+        # Use the probability of class 1 (fake/manipulated)
         prob = torch.softmax(logits, dim=1)[:, 1].item()
 
     is_fake = prob >= threshold
     label_str = "MANIPULATED (FAKE)" if is_fake else "ORIGINAL (REAL)"
 
-    logger.info("========== KẾT QUẢ SUY LUẬN ==========")
-    logger.info(f"Video:     {Path(video_path).name}")
-    logger.info(f"Dự đoán:   {label_str}")
-    logger.info(f"Độ tự tin: {prob * 100:.2f}% (Tỷ lệ giả mạo)")
+    logger.info("========== INFERENCE RESULTS ==========")
+    logger.info(f"Video:      {Path(video_path).name}")
+    logger.info(f"Prediction: {label_str}")
+    logger.info(f"Confidence: {prob * 100:.2f}% (Fake probability)")
     logger.info("======================================")
 
 
