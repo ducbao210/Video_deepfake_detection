@@ -7,6 +7,8 @@ from sklearn.metrics import (
     recall_score,
     f1_score,
     roc_auc_score,
+    balanced_accuracy_score,
+    average_precision_score,
 )
 
 
@@ -15,9 +17,9 @@ def calculate_metrics(y_true, y_pred, threshold=0.5):
     Calculate classification metrics.
 
     Args:
-        y_true: Ground truth labels (Tensor hoặc ndarray)
-        y_pred: Prediction probabilities hoặc logits
-        threshold: Threshold để chuyển sang nhãn
+        y_true: Ground truth labels (Tensor/ ndarray)
+        y_pred: Prediction probabilities/ logits
+        threshold: Decision threshold for converting predicted probabilities to class labels.
 
     Returns:
         dict
@@ -32,7 +34,7 @@ def calculate_metrics(y_true, y_pred, threshold=0.5):
     y_true = np.asarray(y_true).reshape(-1)
     y_pred = np.asarray(y_pred).reshape(-1)
 
-    # Nếu là logits thì chuyển sang probability
+    # convert to prob if input is logits
     if np.any(y_pred < 0) or np.any(y_pred > 1):
         y_pred = 1.0 / (1.0 + np.exp(-y_pred))
 
@@ -40,6 +42,7 @@ def calculate_metrics(y_true, y_pred, threshold=0.5):
 
     metrics = {
         "accuracy": accuracy_score(y_true, y_label),
+        "balanced_accuracy": balanced_accuracy_score(y_true, y_label),
         "precision": precision_score(y_true, y_label, zero_division=0),
         "recall": recall_score(y_true, y_label, zero_division=0),
         "f1": f1_score(y_true, y_label, zero_division=0),
@@ -47,8 +50,10 @@ def calculate_metrics(y_true, y_pred, threshold=0.5):
 
     try:
         metrics["auc"] = roc_auc_score(y_true, y_pred)
+        metrics["ap"] = average_precision_score(y_true, y_pred)
     except ValueError:
         metrics["auc"] = 0.5
+        metrics["ap"] = float(np.mean(y_true))
 
     return metrics
 
