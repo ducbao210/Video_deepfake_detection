@@ -3,8 +3,9 @@ model:
   name: video_swin
 
   architecture:
-    backbone: swin_base_patch4_window7_224
+    backbone: swin3d_t       # swin3d_t | swin3d_s | swin3d_b
     pretrained: true
+    freeze_backbone: false
 
   classifier:
     dropout: 0.3
