@@ -7,6 +7,9 @@ model:
     pretrained: true
     freeze_backbone: false
 
+    chunk_size: 64
+    grad_checkpoint: false
+
   lstm:
     hidden_size: 256
     num_layers: 2
