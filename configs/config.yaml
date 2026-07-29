@@ -10,6 +10,7 @@ defaults:
   - inference: default
   - callbacks: default
   - logging: default
+  - huggingface: default
   - _self_
 
 project_name: deepfake-detection
@@ -17,4 +18,4 @@ experiment_name: ${model.name}
 seed: 42
 mode: train
 device: auto
-output_dir: outputs/${experiment_name}/${now:%Y-%m-%d_%H-%M-%S}
+output_dir: outputs/${experiment_name}
