@@ -1,30 +1,34 @@
 import sys
 from pathlib import Path
 
+import numpy as np
+
 import hydra
 from omegaconf import DictConfig
+
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-# Cấu hình đường dẫn gốc để import thư mục src
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.utils import get_logger, seed_everything
+from src.utils import get_logger, seed_everything, seed_worker
 from src.data import DeepfakeDataset, get_train_transforms, get_val_transforms
 from src.models import build_model
 from src.training.trainer import Trainer
+from src.training import build_optimizer, build_scheduler
 
 
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
 def main(cfg: DictConfig):
-    # Khởi tạo logger và set seed
+    # Initialize the logger and set the random seed
     logger = get_logger(cfg.logging, log_file="train.log")
-    logger.info(f"Bắt đầu quy trình huấn luyện cho: {cfg.experiment_name}")
+
+    logger.info(f"Starting training for experiment: {cfg.experiment_name}")
     seed_everything(cfg.seed)
 
-    # 1. Chuẩn bị Dataset & DataLoader
+    # Prepare the datasets and data loaders
     train_transforms = get_train_transforms(cfg)
     val_transforms = get_val_transforms(cfg)
 
@@ -33,43 +37,55 @@ def main(cfg: DictConfig):
     )
     val_dataset = DeepfakeDataset(cfg.paths.data.val_csv, cfg, transform=val_transforms)
 
+    g = torch.Generator()
+    g.manual_seed(cfg.seed)
+
     train_loader = DataLoader(
         train_dataset,
         batch_size=cfg.dataloader.batch_size,
         shuffle=cfg.dataloader.shuffle,
         num_workers=cfg.dataloader.num_workers,
         pin_memory=cfg.dataloader.pin_memory,
-        persistent_workers=cfg.dataloader.persistent_workers,
+        persistent_workers=(
+            cfg.dataloader.persistent_workers and cfg.dataloader.num_workers > 0
+        ),
+        worker_init_fn=seed_worker,
+        generator=g,
     )
-
     val_loader = DataLoader(
         val_dataset,
         batch_size=cfg.dataloader.batch_size,
         shuffle=False,
         num_workers=cfg.dataloader.num_workers,
         pin_memory=cfg.dataloader.pin_memory,
-        persistent_workers=cfg.dataloader.persistent_workers,
+        persistent_workers=cfg.dataloader.persistent_workers
+        and cfg.dataloader.num_workers > 0,
     )
 
-    # 2. Khởi tạo Model
+    # Initialize the model
     model = build_model(cfg)
 
-    # 3. Thiết lập Loss, Optimizer và Scheduler
-    criterion = nn.CrossEntropyLoss()
+    # Configure the loss function, optimizer, and learning rate scheduler
+    train_labels = train_dataset.data["label"].to_numpy()
+    class_counts = np.bincount(train_labels, minlength=cfg.model.classifier.num_classes)
+    class_weights = len(train_labels) / (
+        len(class_counts) * np.maximum(class_counts, 1)
+    )
+    class_weights = torch.tensor(class_weights, dtype=torch.float32)
 
-    optimizer = torch.optim.AdamW(
-        model.parameters(),
-        lr=cfg.training.learning_rate,
-        weight_decay=cfg.training.weight_decay,
+    logger.info(f"Training set class distribution: {class_counts.tolist()}")
+
+    logger.info(f"Class weights: {class_weights.tolist()}")
+
+    criterion = nn.CrossEntropyLoss(
+        weight=class_weights,
+        label_smoothing=cfg.training.get("label_smoothing", 0.0),
     )
 
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer,
-        T_max=cfg.training.epochs,
-        eta_min=cfg.training.scheduler.get("min_lr", 1e-6),
-    )
+    optimizer = build_optimizer(model, cfg)
+    scheduler = build_scheduler(optimizer, cfg)
 
-    # 4. Bắt đầu huấn luyện qua Engine Trainer
+    # Start training using the Trainer engine
     trainer = Trainer(
         model=model,
         train_loader=train_loader,
