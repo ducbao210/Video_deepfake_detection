@@ -17,7 +17,7 @@ def normalize_dataset_structure(data_dir: Path):
     - Flatten mainpulated dataset
     """
     old_real = data_dir / "DFD_original sequences"
-    new_real = data_dir / "DFD_orginal_sequences"
+    new_real = data_dir / "DFD_original_sequences"
 
     if old_real.exists():
         if new_real.exists():
