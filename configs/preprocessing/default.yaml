@@ -6,3 +6,5 @@ preprocessing:
   face_detector: retinaface
   padding_factor: 1.3
   num_workers: 4
+  sampling: uniform        # uniform | random
+  consistent_augment: true 
