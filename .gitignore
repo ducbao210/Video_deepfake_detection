@@ -1,51 +1,25 @@
-# ==========================================
 # Python
-# ==========================================
 __pycache__/
 *.py[cod]
-*$py.class
-
-# Virtual Environment
 .venv/
 venv/
-env/
-ENV/
 
-# ==========================================
-# Build / Distribution
-# ==========================================
+# IDE
+.vscode/
+.idea/
+
+# Build
 build/
 dist/
 *.egg-info/
-.eggs/
 
-# ==========================================
-# IDE
-# ==========================================
-.vscode/
-.idea/
-*.code-workspace
-
-# ==========================================
-# Jupyter
-# ==========================================
-.ipynb_checkpoints/
-
-# ==========================================
-# Logs
-# ==========================================
+# Logs & TensorBoard
 logs/
 *.log
-
-# ==========================================
-# TensorBoard
-# ==========================================
 runs/
 tensorboard/
 
-# ==========================================
-# Checkpoints / Models
-# ==========================================
+# Models
 checkpoints/
 weights/
 *.pth
@@ -53,91 +27,42 @@ weights/
 *.ckpt
 *.onnx
 
-# ==========================================
 # Hydra
-# ==========================================
 outputs/
 multirun/
 
-# ==========================================
-# Dataset
-# ==========================================
-data/raw/
-data/processed/
-data/interim/
-data/external/
-
-# Nếu muốn giữ cấu trúc folder:
-!data/raw/.gitkeep
-!data/processed/.gitkeep
-!data/interim/.gitkeep
-!data/external/.gitkeep
-
-# ==========================================
-# Cache
-# ==========================================
-.cache/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.pyre/
-
-# ==========================================
-# Environment Variables
-# ==========================================
-.env
-.env.*
-
-# ==========================================
-# OS
-# ==========================================
-.DS_Store
-Thumbs.db
-
-# ==========================================
-# Hugging Face
-# ==========================================
-.huggingface/
-hf_cache/
-
-# ==========================================
-# Temporary Files
-# ==========================================
-*.tmp
-*.temp
-*.bak
-
-# ==========================================
-# Misc
-# ==========================================
-*.swp
-*.swo
-
-extract_configs.py
-extract.py
-extract_structure.py
-
-configs.txt
-file.txt
-
-# =========================
 # Data
-# =========================
 data/*
-
-# Keep these folders
 !data/raw/
 !data/processed/
 !data/split/
-
-# Keep files directly inside
 !data/raw/list_name.py
 !data/split/*.csv
 !data/name.txt
 
-# Ignore everything inside raw và processed
 data/raw/*
 data/processed/*
 
-# Nhưng giữ lại list_name.py
-!data/raw/list_name.py
+# Cache
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environment
+.env
+
+# Hugging Face
+.huggingface/
+hf_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+*.tmp
+*.bak
+*.swp
+*.swo
+tempCodeRunnerFile.py
