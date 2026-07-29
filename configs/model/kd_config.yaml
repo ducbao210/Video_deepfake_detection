@@ -1,4 +1,10 @@
 # @package _global_
+model:
+  name: convnext_kd
+  classifier:
+    dropout: 0.3
+    num_classes: 2
+
 kd:
   teacher:
     model: video_swin
