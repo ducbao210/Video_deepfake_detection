@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import timm
+import torch.utils.checkpoint as cp
 
 
 class HybridConvNeXtBiLSTM(nn.Module):
@@ -11,9 +12,6 @@ class HybridConvNeXtBiLSTM(nn.Module):
         lstm_cfg = cfg.lstm
         cls_cfg = cfg.classifier
 
-        # ---------------------------
-        # ConvNeXt Backbone
-        # ---------------------------
         self.encoder = timm.create_model(
             model_name=cnn_cfg.backbone,
             pretrained=cnn_cfg.pretrained,
@@ -25,10 +23,9 @@ class HybridConvNeXtBiLSTM(nn.Module):
                 param.requires_grad = False
 
         feature_dim = self.encoder.num_features
+        self.chunk_size = cnn_cfg.get("chunk_size", 64)
+        self.use_grad_checkpoint = cnn_cfg.get("grad_checkpoint", False)
 
-        # ---------------------------
-        # BiLSTM
-        # ---------------------------
         self.lstm = nn.LSTM(
             input_size=feature_dim,
             hidden_size=lstm_cfg.hidden_size,
@@ -42,16 +39,13 @@ class HybridConvNeXtBiLSTM(nn.Module):
             lstm_cfg.hidden_size * 2 if lstm_cfg.bidirectional else lstm_cfg.hidden_size
         )
 
-        # ---------------------------
-        # Temporal Attention Layer
-        # ---------------------------
+        # Temporal attention
         self.attention = nn.Sequential(
-            nn.Linear(lstm_out_dim, 128), nn.Tanh(), nn.Linear(128, 1)
+            nn.Linear(lstm_out_dim, 128),
+            nn.Tanh(),
+            nn.Linear(128, 1),
         )
 
-        # ---------------------------
-        # Classifier
-        # ---------------------------
         self.pooling = cfg.sequence.pooling
 
         self.classifier = nn.Sequential(
@@ -65,38 +59,36 @@ class HybridConvNeXtBiLSTM(nn.Module):
     def forward(self, x):
         """
         Args:
-            x: Tensor (B, T, C, H, W)
+            x: Input tensor of shape (B, T, C, H, W).
 
         Returns:
-            logits: Tensor (B, num_classes)
+            Classification logits of shape (B, num_classes).
         """
         B, T, C, H, W = x.shape
 
-        # (B,T,C,H,W) -> (B*T,C,H,W)
         x = x.reshape(B * T, C, H, W)
 
-        # ---------------------------
-        # Chunked CNN Feature Extraction (Chống OOM)
-        # ---------------------------
-        chunk_size = 64  # Bạn có thể giảm xuống 32 nếu GPU vẫn báo hết bộ nhớ
         features_list = []
-        for i in range(0, x.size(0), chunk_size):
-            chunk = x[i : i + chunk_size]
-            features_list.append(self.encoder(chunk))
+
+        for i in range(0, x.size(0), self.chunk_size):
+            chunk = x[i : i + self.chunk_size]
+
+            if self.training and self.use_grad_checkpoint:
+                feat = cp.checkpoint(
+                    self.encoder,
+                    chunk,
+                    use_reentrant=False,
+                )
+            else:
+                feat = self.encoder(chunk)
+
+            features_list.append(feat)
 
         features = torch.cat(features_list, dim=0)
-
-        # (B*T,F) -> (B,T,F)
         features = features.reshape(B, T, -1)
 
-        # ---------------------------
-        # Temporal Modeling (BiLSTM)
-        # ---------------------------
         lstm_out, _ = self.lstm(features)
 
-        # ---------------------------
-        # Temporal Pooling
-        # ---------------------------
         if self.pooling == "mean":
             video_feature = lstm_out.mean(dim=1)
 
@@ -107,20 +99,15 @@ class HybridConvNeXtBiLSTM(nn.Module):
             video_feature = lstm_out[:, -1]
 
         elif self.pooling == "attention":
-            # 1. Tính trọng số Attention cho từng frame
-            attn_weights = self.attention(lstm_out)  # (B, T, 1)
-            attn_weights = torch.softmax(attn_weights, dim=1)  # Chuẩn hóa trọng số
+            attn_weights = self.attention(lstm_out)
+            attn_weights = torch.softmax(attn_weights, dim=1)
 
-            # 2. Áp dụng trọng số lên output của BiLSTM
-            weighted_out = lstm_out * attn_weights  # (B, T, lstm_out_dim)
-
-            # 3. Tính tổng lại để ra feature đại diện cho cả video
-            video_feature = weighted_out.sum(dim=1)  # (B, lstm_out_dim)
+            weighted_out = lstm_out * attn_weights
+            video_feature = weighted_out.sum(dim=1)
 
         else:
-            raise ValueError(f"Unknown pooling: {self.pooling}")
+            raise ValueError(f"Unknown pooling method: {self.pooling}")
 
-        # Final classification
         logits = self.classifier(video_feature)
 
         return logits
