@@ -1,26 +1,54 @@
 import torch
 import torch.nn as nn
-import timm
+from torchvision.models.video import (
+    swin3d_b,
+    swin3d_s,
+    swin3d_t,
+    Swin3D_B_Weights,
+    Swin3D_S_Weights,
+    Swin3D_T_Weights,
+)
+
+_BUILDERS = {
+    "swin3d_t": (swin3d_t, Swin3D_T_Weights.KINETICS400_V1),
+    "swin3d_s": (swin3d_s, Swin3D_S_Weights.KINETICS400_V1),
+    "swin3d_b": (swin3d_b, Swin3D_B_Weights.KINETICS400_V1),
+}
 
 
 class VideoSwinDetector(nn.Module):
-    def __init__(self, model_config):  # Đổi tên biến thành model_config cho rõ ràng
+    """
+    Video Swin Transformer with 3D shifted-window attention
+    across both spatial and temporal dimensions.
+
+    Input : (B, T, C, H, W)
+    Output: (B, num_classes)
+    """
+
+    def __init__(self, model_config):
         super().__init__()
 
-        # Gọi trực tiếp từ model_config
         arch = model_config.architecture
         cls_cfg = model_config.classifier
 
-        self.encoder = timm.create_model(
-            model_name=arch.backbone,
-            pretrained=arch.pretrained,
-            num_classes=0,
+        backbone = arch.get("backbone", "swin3d_t")
+        if backbone not in _BUILDERS:
+            raise ValueError(
+                f"Unsupported backbone '{backbone}'. "
+                f"Available backbones: {list(_BUILDERS)}"
+            )
+
+        builder, weights = _BUILDERS[backbone]
+        self.encoder = builder(
+            weights=weights if arch.get("pretrained", True) else None
         )
 
-        in_features = self.encoder.num_features
+        in_features = self.encoder.head.in_features
+        self.encoder.head = nn.Identity()
 
-        # Thêm chunk_size vào để chống OOM
-        self.chunk_size = model_config.get("chunk_size", 64)
+        if arch.get("freeze_backbone", False):
+            for param in self.encoder.parameters():
+                param.requires_grad = False
 
         self.classifier = nn.Sequential(
             nn.Dropout(cls_cfg.dropout),
@@ -28,34 +56,6 @@ class VideoSwinDetector(nn.Module):
         )
 
     def forward(self, x):
-        """
-        Args:
-            x: (B, T, C, H, W)
-
-        Returns:
-            logits: (B, num_classes)
-        """
-        B, T, C, H, W = x.shape
-
-        # (B,T,C,H,W) -> (B*T,C,H,W)
-        x = x.reshape(B * T, C, H, W)
-
-        # ---------------------------
-        # Áp dụng Chunking (Tránh OOM) thay vì đẩy trực tiếp tựa như features = self.encoder(x)
-        # ---------------------------
-        features_list = []
-        for i in range(0, x.size(0), self.chunk_size):
-            chunk = x[i : i + self.chunk_size]
-            features_list.append(self.encoder(chunk))
-
-        features = torch.cat(features_list, dim=0)
-
-        # (B*T,F) -> (B,T,F)
-        features = features.reshape(B, T, -1)
-
-        # Temporal Average Pooling
-        video_features = features.mean(dim=1)
-
-        logits = self.classifier(video_features)
-
-        return logits
+        x = x.permute(0, 2, 1, 3, 4)
+        features = self.encoder(x)
+        return self.classifier(features)
