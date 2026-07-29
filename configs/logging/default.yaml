@@ -1,11 +1,11 @@
 # @package _global_
 logging:
   level: INFO
-  log_dir: logs
+  log_dir: ${output_dir}/logs
   log_interval: 20
   tensorboard: true
-  tensorboard_dir: tensorboard
+  tensorboard_dir: ${output_dir}/tensorboard
   save_checkpoint: true
   save_last: true
   save_best_only: true
-  checkpoint_dir: checkpoints
+  checkpoint_dir: ${output_dir}/checkpoints
