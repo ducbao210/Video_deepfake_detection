@@ -3,7 +3,6 @@ dataset:
   name: DFD
   num_classes: 2
   image_size: 224
-  sequence_length: 16
   root: ${paths.data.processed_dir}
   train_csv: ${paths.data.train_csv}
   val_csv: ${paths.data.val_csv}
@@ -14,3 +13,6 @@ split:
   val: 0.15
   test: 0.15
   random_seed: 42
+  strategy: actor_disjoint   # actor_disjoint | random
+  num_test_actors: 6
+  num_val_actors: 6
