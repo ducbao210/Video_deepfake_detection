@@ -25,7 +25,12 @@ def _load_submodel(cfg, model_name, checkpoint_path, device, logger):
     Merge the corresponding model configuration into a copy of the base config.
     """
     model_cfg = OmegaConf.load(ROOT / "configs" / "model" / f"{model_name}.yaml")
-    merged = OmegaConf.merge(cfg, model_cfg)
+
+    # Chuyển đổi cfg sang dict để gỡ bỏ giới hạn struct mode
+    cfg_dict = OmegaConf.to_container(cfg, resolve=True)
+    unfrozen_cfg = OmegaConf.create(cfg_dict)
+
+    merged = OmegaConf.merge(unfrozen_cfg, model_cfg)
 
     model = build_model(merged)
 
@@ -34,7 +39,7 @@ def _load_submodel(cfg, model_name, checkpoint_path, device, logger):
         if not ckpt_path.is_file():
             raise FileNotFoundError(f"Checkpoint not found: {ckpt_path}")
         logger.info(f"Loading weights for '{model_name.capitalize()}' from {ckpt_path}")
-        ckpt = torch.load(ckpt_path, map_location=device)
+        ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
         model.load_state_dict(ckpt["model_state_dict"])
     else:
         logger.info(
@@ -46,7 +51,7 @@ def _load_submodel(cfg, model_name, checkpoint_path, device, logger):
 
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
 def main(cfg: DictConfig):
-    logger = get_logger(cfg.logging, log_file="kd_train.log")
+    logger = get_logger(cfg.logging, name=cfg.experiment_name, log_file="kd_train.log")
     seed_everything(cfg.seed)
 
     device = torch.device(
