@@ -42,7 +42,9 @@ class Trainer:
         self.checkpoint_dir = Path(cfg.logging.checkpoint_dir)
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
-        self.logger = get_logger(cfg.logging, log_file="train.log")
+        self.logger = get_logger(
+            cfg.logging, name=cfg.experiment_name, log_file="train.log"
+        )
         self.writer = (
             SummaryWriter(log_dir=cfg.logging.tensorboard_dir)
             if cfg.logging.tensorboard
@@ -172,6 +174,11 @@ class Trainer:
         if self.writer:
             self.writer.close()
 
+        if self.cfg.huggingface.get("enabled", False) and self.cfg.logging.get(
+            "save_last", True
+        ):
+            self._upload_checkpoint(self.checkpoint_dir / "last.pth")
+
         save_history(self.history, self.output_dir / "history.json")
         plot_learning_curves(
             self.history,
@@ -222,12 +229,15 @@ class Trainer:
             save_path = self.checkpoint_dir / "last.pth"
 
         torch.save(state, save_path)
-        if self.cfg.huggingface.get("enabled", False):
+        if is_best and self.cfg.huggingface.get("enabled", False):
             self._upload_checkpoint(save_path)
 
     def _upload_checkpoint(self, checkpoint_path):
         from huggingface_hub import HfApi
         from dotenv import load_dotenv
+        from huggingface_hub.utils import disable_progress_bars
+
+        disable_progress_bars()
 
         load_dotenv(".env")
         hf_token = os.getenv("HF_TOKEN")
