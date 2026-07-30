@@ -56,7 +56,7 @@ def get_model_bundle() -> ModelBundle:
             f"Please set the CHECKPOINT_PATH environment variable correctly."
         )
 
-    state = torch.load(ckpt_path, map_location=device)
+    state = torch.load(ckpt_path, map_location=device, weights_only=False)
     model.load_state_dict(state["model_state_dict"])
     model.to(device).eval()
 
