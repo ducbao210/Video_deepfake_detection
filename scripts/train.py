@@ -23,7 +23,7 @@ from src.training import build_optimizer, build_scheduler
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
 def main(cfg: DictConfig):
     # Initialize the logger and set the random seed
-    logger = get_logger(cfg.logging, log_file="train.log")
+    logger = get_logger(cfg.logging, name=cfg.experiment_name, log_file="train.log")
 
     logger.info(f"Starting training for experiment: {cfg.experiment_name}")
     seed_everything(cfg.seed)
