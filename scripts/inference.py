@@ -60,7 +60,7 @@ def extract_frames_memory(video_path, frame_count, image_size):
 
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
 def main(cfg: DictConfig):
-    logger = get_logger(cfg.logging, log_file="inference.log")
+    logger = get_logger(cfg.logging, name=cfg.experiment_name, log_file="inference.log")
 
     video_path = cfg.inference.video_path
     if not video_path or not Path(video_path).exists():
@@ -78,7 +78,7 @@ def main(cfg: DictConfig):
     checkpoint_path = cfg.inference.checkpoint
 
     logger.info(f"Loading model weights from: {checkpoint_path}")
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
