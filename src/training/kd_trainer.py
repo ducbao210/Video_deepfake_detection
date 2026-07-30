@@ -70,6 +70,7 @@ class KDTrainer:
 
         self.logger = get_logger(
             cfg.logging,
+            name=cfg.experiment_name,
             log_file="kd_train.log",
         )
 
@@ -98,7 +99,9 @@ class KDTrainer:
         if resume_path and os.path.isfile(resume_path):
 
             self.logger.info(f"Loading checkpoint from: {resume_path}")
-            checkpoint = torch.load(resume_path, map_location=self.device)
+            checkpoint = torch.load(
+                resume_path, map_location=self.device, weights_only=False
+            )
 
             self.student.load_state_dict(checkpoint["model_state_dict"])
             self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
@@ -208,6 +211,11 @@ class KDTrainer:
 
         if self.writer:
             self.writer.close()
+        if self.cfg.huggingface.get("enabled", False) and self.cfg.logging.get(
+            "save_last", True
+        ):
+            self._upload_checkpoint(self.checkpoint_dir / "last.pth")
+
         save_history(self.history, self.output_dir / "history.json")
         plot_learning_curves(
             self.history,
@@ -256,12 +264,16 @@ class KDTrainer:
         else:
             save_path = self.checkpoint_dir / "last.pth"
         torch.save(state, save_path)
-        if self.cfg.huggingface.get("enabled", False):
+        # only upload new best ckpt
+        if is_best and self.cfg.huggingface.get("enabled", False):
             self._upload_checkpoint(save_path)
 
     def _upload_checkpoint(self, checkpoint_path):
         from huggingface_hub import HfApi
         from dotenv import load_dotenv
+        from huggingface_hub.utils import disable_progress_bars
+
+        disable_progress_bars()
 
         load_dotenv(".env")
         hf_token = os.getenv("HF_TOKEN")
