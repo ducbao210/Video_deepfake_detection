@@ -27,7 +27,8 @@ def get_model_bundle() -> ModelBundle:
     config_dir = ROOT / "configs"
     model_name = os.getenv("MODEL_NAME", "convnext")
     checkpoint = os.getenv(
-        "CHECKPOINT_PATH", str(ROOT / "checkpoints" / model_name / "best.pth")
+        "CHECKPOINT_PATH",
+        str(ROOT / "outputs" / "checkpoints" / model_name / "best.pth"),
     )
 
     # Merge the configuration files similarly to Hydra, without using @hydra.main

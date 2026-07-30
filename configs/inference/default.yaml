@@ -1,6 +1,6 @@
 # @package _global_
 inference:
-  checkpoint: checkpoints/convnext/best.pth
+  checkpoint: ${logging.checkpoint_dir}/best.pth
   video_path: null
   output_path: outputs/predictions
   threshold: 0.5

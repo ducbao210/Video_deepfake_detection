@@ -8,8 +8,7 @@ model:
 kd:
   teacher:
     model: video_swin
-    checkpoint: checkpoints/video_swin/best.pth
-
+    checkpoint: outputs/video_swin/checkpoints/best.pth
   student:
     model: convnext
-    checkpoint: null
+    checkpoint: outputs/convnext/checkpoints/best.pth
