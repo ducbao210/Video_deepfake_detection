@@ -1,3 +1,4 @@
+# @package _global_
 training:
   epochs: 20
   learning_rate: 5e-5
