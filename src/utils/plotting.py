@@ -69,7 +69,7 @@ def plot_learning_curves(history: dict, save_path=None, metrics=("loss", "auc"))
 # Confusion matrix
 # --------------------------------------------------------------------------- #
 def plot_confusion_matrix(
-    cm, class_names=("Real", "Fake"), normalize=False, save_path=None
+    cm, class_names=("Fake", "Real"), normalize=False, save_path=None
 ):
     cm = np.asarray(cm, dtype=float)
     if normalize:
