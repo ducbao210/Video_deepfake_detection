@@ -69,7 +69,9 @@ class Trainer:
 
         if resume_path and os.path.isfile(resume_path):
             self.logger.info(f"Loading checkpoint from: {resume_path}")
-            checkpoint = torch.load(resume_path, map_location=self.device)
+            checkpoint = torch.load(
+                resume_path, map_location=self.device, weights_only=False
+            )
 
             self.model.load_state_dict(checkpoint["model_state_dict"])
             self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
@@ -152,7 +154,7 @@ class Trainer:
 
             if is_best:
                 self.logger.info(
-                    f"🏆 {self.monitor} cải thiện từ {self.best_metric:.4f} -> {val_monitor:.4f}"
+                    f"🏆 {self.monitor} reached a new best: {self.best_metric:.4f} -> {val_monitor:.4f}"
                 )
                 self.best_metric = val_monitor
                 self.patience_counter = 0
@@ -189,11 +191,9 @@ class Trainer:
 
     def _log_epoch_results(self, epoch, train_metrics, val_metrics):
         train_str = " - ".join(
-            [f"{k.capitalize()}: {v:.4f}" for k, v in train_metrics.items()]
+            [f"{k.upper()}: {v:.4f}" for k, v in train_metrics.items()]
         )
-        val_str = " - ".join(
-            [f"{k.capitalize()}: {v:.4f}" for k, v in val_metrics.items()]
-        )
+        val_str = " - ".join([f"{k.upper()}: {v:.4f}" for k, v in val_metrics.items()])
 
         self.logger.info(f"Train - {train_str} | Val - {val_str}")
 
