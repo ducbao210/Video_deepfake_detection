@@ -25,7 +25,7 @@ from src.utils import (
 from src.data.dataset import DeepfakeDataset
 from src.data.transforms import get_val_transforms
 from src.models import build_model
-from src.training.engine import evaluate, predict
+from src.training.engine import predict
 
 
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
@@ -39,7 +39,7 @@ def main(cfg: DictConfig):
         else ("cuda" if torch.cuda.is_available() else "cpu")
     )
 
-    # Prepare the test dataset
+    # Prepare datasets
     val_transforms = get_val_transforms(cfg)
     test_dataset = DeepfakeDataset(
         cfg.paths.data.test_csv, cfg, transform=val_transforms
@@ -53,7 +53,7 @@ def main(cfg: DictConfig):
         pin_memory=cfg.dataloader.pin_memory,
     )
 
-    # Initialize the model and load the checkpoint
+    # Load model weights
     model = build_model(cfg).to(device)
     checkpoint_path = cfg.inference.checkpoint
 
@@ -64,7 +64,7 @@ def main(cfg: DictConfig):
 
     criterion = nn.CrossEntropyLoss().to(device)
 
-    # Find the optimal threshold on the validation set (without touching the test set)
+    # Pick the best threshold on validation data
     val_dataset = DeepfakeDataset(
         cfg.paths.data.val_csv, cfg, transform=get_val_transforms(cfg)
     )
@@ -86,21 +86,22 @@ def main(cfg: DictConfig):
             key=lambda t: f1_score(val_labels, (val_probs >= t).astype(int)),
         )
         logger.info(f"Optimal F1 threshold on the validation set: {best_threshold:.2f}")
-        # Evaluate on the test set using the selected threshold
+        # Evaluate on the test set
         _, test_probs = predict(model, test_loader, device)
         test_probs = np.asarray(test_probs)
         test_labels = test_dataset.data["label"].to_numpy()
 
     metrics = calculate_metrics(test_labels, test_probs, threshold=best_threshold)
-    cm = confusion_matrix(test_labels, (test_probs >= best_threshold).astype(int))
-
+    cm = confusion_matrix(
+        test_labels, (test_probs >= best_threshold).astype(int), labels=[1, 0]
+    )
     report_dir = Path(cfg.inference.output_path) / "eval_report"
     plot_confusion_matrix(cm, save_path=report_dir / "confusion_matrix.png")
     plot_roc_curve(test_labels, test_probs, save_path=report_dir / "roc_curve.png")
     plot_pr_curve(test_labels, test_probs, save_path=report_dir / "pr_curve.png")
     logger.info(f"Evaluating plots saved at: {report_dir}")
 
-    # Display evaluation results
+    # Log results
 
     logger.info("========== TEST SET EVALUATION RESULTS ==========")
 
@@ -116,7 +117,7 @@ def main(cfg: DictConfig):
     ):
         if name in metrics:
             logger.info(f"{name:18s}: {metrics[name]:.4f}")
-    logger.info(f"Confusion matrix [[TN FP][FN TP]]:\n{cm}")
+    logger.info(f"CONFUSION MATRIX [[TP FN][FP TN]]:\n{cm}")
     logger.info("=================================================")
 
 
