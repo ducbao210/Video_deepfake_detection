@@ -1,11 +1,13 @@
 from .convnext import ConvNeXtDetector
 from .hybrid_convnext_bilstm import HybridConvNeXtBiLSTM
 from .video_swin import VideoSwinDetector
+from .timesformer import TimeSformerDetector
 
 MODEL_REGISTRY = {
     "convnext": ConvNeXtDetector,
     "hybrid_bilstm": HybridConvNeXtBiLSTM,
     "video_swin": VideoSwinDetector,
+    "timesformer": TimeSformerDetector,
 }
 
 
