@@ -39,6 +39,7 @@ def get_model_bundle() -> ModelBundle:
         OmegaConf.load(config_dir / "preprocessing/transforms/default.yaml"),
         OmegaConf.load(config_dir / f"model/{model_name}.yaml"),
         OmegaConf.load(config_dir / "inference/default.yaml"),
+        OmegaConf.load(config_dir / "huggingface/default.yaml"),  # required for cfg.huggingface.* access
     ]
     cfg = OmegaConf.merge(*parts)
     cfg.inference.checkpoint = checkpoint
@@ -52,10 +53,25 @@ def get_model_bundle() -> ModelBundle:
 
     ckpt_path = Path(checkpoint)
     if not ckpt_path.is_file():
-        raise FileNotFoundError(
-            f"Checkpoint not found at {ckpt_path}. "
-            f"Please set the CHECKPOINT_PATH environment variable correctly."
+        print(
+            f"Checkpoint not found locally at {ckpt_path}. Attempting to download from Hugging Face..."
         )
+
+        from huggingface_hub import hf_hub_download
+        from huggingface_hub.utils import enable_progress_bars
+
+        # Bật hiển thị thanh tiến trình (progress bar)
+        enable_progress_bars()
+
+        try:
+            downloaded_path = hf_hub_download(
+                repo_id=cfg.huggingface.repo_id,
+                filename=f"{cfg.huggingface.path_in_repo}/best.pth",
+            )
+            ckpt_path = Path(downloaded_path)
+            print(f"Download complete! Checkpoint saved at: {ckpt_path}")
+        except Exception as e:
+            raise FileNotFoundError(f"Failed to download checkpoint: {e}")
 
     state = torch.load(ckpt_path, map_location=device, weights_only=False)
     model.load_state_dict(state["model_state_dict"])
