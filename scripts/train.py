@@ -65,6 +65,11 @@ def main(cfg: DictConfig):
     # Initialize the model
     model = build_model(cfg)
 
+    num_params = sum(p.numel() for p in model.parameters())
+    model_name_upper = cfg.model.name.upper()
+    logger.info(f"MODEL: {model_name_upper}")
+    logger.info(f"TOTAL PARAMETERS: {num_params:,}")
+
     # Configure the loss function, optimizer, and learning rate scheduler
     train_labels = train_dataset.data["label"].to_numpy()
     class_counts = np.bincount(train_labels, minlength=cfg.model.classifier.num_classes)
