@@ -130,14 +130,16 @@ def main(cfg: DictConfig):
         pd.DataFrame(buckets["dropped"]).to_csv(split_dir / "dropped.csv", index=False)
 
     # Summary
+    # Summary
     logger.info("========== SUMMARY ==========")
-    logger.info(f"Strategy: {strategy}")
+    logger.info(f"STRATEGY: {strategy.upper()}")
     for name in ("train", "val", "test", "dropped"):
         rows = buckets[name]
         real = sum(1 for r in rows if r["label"] == 0)
         fake = sum(1 for r in rows if r["label"] == 1)
-        logger.info(f"{name:8s}: {len(rows):5d} video (real={real:4d}, fake={fake:4d})")
-
+        logger.info(
+            f"{name.upper():<8} | Total: {len(rows):<5} | Real: {real:<4} | Fake: {fake:<4}"
+        )
     kept = sum(len(buckets[n]) for n in ("train", "val", "test"))
     logger.info(
         f"Retained {kept}/{len(all_records)} videos ({kept/len(all_records):.1%})"
