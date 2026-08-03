@@ -6,11 +6,8 @@ model:
     pretrained_model: facebook/timesformer-base-finetuned-k400
     pretrained: true
     freeze_backbone: false
-    num_frames: 15             # should match preprocessing.frame_count
-                                # (checkpoint's original num_frames is 8;
-                                # a different value re-initializes the
-                                # temporal position embeddings)
-    image_size: 224            # should match dataset.image_size
+    num_frames: 15               
+    image_size: 224            
 
   classifier:
     dropout: 0.3
