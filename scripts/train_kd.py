@@ -26,7 +26,7 @@ def _load_submodel(cfg, model_name, checkpoint_path, device, logger):
     """
     model_cfg = OmegaConf.load(ROOT / "configs" / "model" / f"{model_name}.yaml")
 
-    # Chuyển đổi cfg sang dict để gỡ bỏ giới hạn struct mode
+    # Convert cfg to a dict to bypass struct-mode limits.
     cfg_dict = OmegaConf.to_container(cfg, resolve=True)
     unfrozen_cfg = OmegaConf.create(cfg_dict)
 
