@@ -5,7 +5,7 @@ model:
   architecture:
     backbone: convnext_small
     pretrained: true
-    freeze_backbone: false
+    freeze_backbone: true
     global_pool: avg
     chunk_size: 64
     grad_checkpoint: false

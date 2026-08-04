@@ -6,9 +6,9 @@ services:
     container_name: deepfake-backend
     ports:
       - "8000:8000"
+    env_file: .env  # loads HF_TOKEN from here
     volumes:
-      # Gắn checkpoint từ máy host, không nhét vào image
-      - ./checkpoints:/app/checkpoints:ro
+      - ./checkpoints:/app/checkpoints
     environment:
       MODEL_NAME: convnext
       CHECKPOINT_PATH: /app/checkpoints/convnext/best.pth

@@ -5,7 +5,7 @@ model:
   architecture:
     pretrained_model: facebook/timesformer-base-finetuned-k400
     pretrained: true
-    freeze_backbone: false
+    freeze_backbone: true
     num_frames: 15               
     image_size: 224            
 

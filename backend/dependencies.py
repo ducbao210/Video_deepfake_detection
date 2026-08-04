@@ -1,3 +1,4 @@
+import shutil
 import sys
 from functools import lru_cache
 from pathlib import Path
@@ -39,7 +40,7 @@ def get_model_bundle() -> ModelBundle:
         OmegaConf.load(config_dir / "preprocessing/transforms/default.yaml"),
         OmegaConf.load(config_dir / f"model/{model_name}.yaml"),
         OmegaConf.load(config_dir / "inference/default.yaml"),
-        OmegaConf.load(config_dir / "huggingface/default.yaml"),  # required for cfg.huggingface.* access
+        OmegaConf.load(config_dir / "huggingface/default.yaml"),
     ]
     cfg = OmegaConf.merge(*parts)
     cfg.inference.checkpoint = checkpoint
@@ -60,19 +61,28 @@ def get_model_bundle() -> ModelBundle:
         from huggingface_hub import hf_hub_download
         from huggingface_hub.utils import enable_progress_bars
 
-        # Bật hiển thị thanh tiến trình (progress bar)
         enable_progress_bars()
 
         try:
             downloaded_path = hf_hub_download(
                 repo_id=cfg.huggingface.repo_id,
                 filename=f"{cfg.huggingface.path_in_repo}/best.pth",
+                token=cfg.huggingface.token,
+                local_dir=ckpt_path.parent,
             )
-            ckpt_path = Path(downloaded_path)
+            downloaded_path = Path(downloaded_path)
+
+            ckpt_path.parent.mkdir(parents=True, exist_ok=True)
+            if downloaded_path.resolve() != ckpt_path.resolve():
+                shutil.copy2(downloaded_path, ckpt_path)
+
             print(f"Download complete! Checkpoint saved at: {ckpt_path}")
         except Exception as e:
-            raise FileNotFoundError(f"Failed to download checkpoint: {e}")
-
+            raise FileNotFoundError(
+                f"Failed to download checkpoint: {e}\n"
+                f"Run `python scripts/train.py model={model_name}` to train it yourself, "
+                f"or check HF_TOKEN in .env if the repo is private."
+            )
     state = torch.load(ckpt_path, map_location=device, weights_only=False)
     model.load_state_dict(state["model_state_dict"])
     model.to(device).eval()

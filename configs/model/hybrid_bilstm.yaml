@@ -5,7 +5,7 @@ model:
   cnn:
     backbone: convnext_small
     pretrained: true
-    freeze_backbone: false
+    freeze_backbone: true
 
     chunk_size: 64
     grad_checkpoint: false
