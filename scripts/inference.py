@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import sys
+import shutil
 import cv2
 import numpy as np
 from pathlib import Path
@@ -76,12 +77,12 @@ def main(cfg: DictConfig):
 
     # Initialize the model
     model = build_model(cfg).to(device)
-    checkpoint_path = cfg.inference.checkpoint
+    checkpoint_path = Path(cfg.inference.checkpoint)
 
-    ckpt_path = Path(checkpoint_path)
-    if not ckpt_path.is_file():
+    # Download the checkpoint from Hugging Face when it is not available locally.
+    if not checkpoint_path.is_file():
         logger.info(
-            f"Checkpoint not found locally at {ckpt_path}. Attempting to download from Hugging Face..."
+            f"Checkpoint not found locally at {checkpoint_path}. Attempting to download from Hugging Face..."
         )
 
         from huggingface_hub import hf_hub_download
@@ -90,18 +91,37 @@ def main(cfg: DictConfig):
         enable_progress_bars()
 
         try:
+            # Infer the experiment name from the checkpoint path when possible.
+            # Example: outputs/convnext_kd/checkpoints/best.pth -> convnext_kd
+            if checkpoint_path.parent.name == "checkpoints":
+                exp_name = checkpoint_path.parent.parent.name
+            else:
+                exp_name = cfg.experiment_name  # Safe fallback
+
+            # Build the Hugging Face path for the checkpoint file.
+            hf_filename = f"checkpoints/{exp_name}/{checkpoint_path.name}"
+            logger.info(
+                f"Downloading {hf_filename} from repo {cfg.huggingface.repo_id}..."
+            )
+
             downloaded_path = hf_hub_download(
                 repo_id=cfg.huggingface.repo_id,
-                filename=f"{cfg.huggingface.path_in_repo}/best.pth",
+                filename=hf_filename,
                 token=cfg.huggingface.token,
             )
-            ckpt_path = Path(downloaded_path)
-            logger.info(f"Download complete! Checkpoint used: {ckpt_path}")
+
+            # Create the local checkpoint directory if it does not exist yet.
+            checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Copy the downloaded file into the expected local checkpoint path.
+            if Path(downloaded_path).resolve() != checkpoint_path.resolve():
+                shutil.copy2(downloaded_path, checkpoint_path)
+
+            logger.info(f"Download complete! Checkpoint saved at: {checkpoint_path}")
         except Exception as e:
             logger.error(f"Failed to download checkpoint: {e}")
             return
 
-    logger.info(f"Loading model weights from: {checkpoint_path}")
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
