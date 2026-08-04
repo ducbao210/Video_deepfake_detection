@@ -41,11 +41,16 @@ class TimeSformerDetector(nn.Module):
             for param in self.encoder.parameters():
                 param.requires_grad = False
 
-            # Re-enable temporal-position parameters.
+            # Re-enable temporal-position parameters
             for name, param in self.encoder.named_parameters():
                 if "time_embeddings" in name or "temporal" in name:
                     param.requires_grad = True
-            # If frame count differs, unfreeze temporal embeddings manually if needed.
+
+            for param in self.encoder.encoder.layer[-1].parameters():
+                param.requires_grad = True
+
+            for param in self.encoder.layernorm.parameters():
+                param.requires_grad = True
 
         hidden_size = self.encoder.config.hidden_size
 

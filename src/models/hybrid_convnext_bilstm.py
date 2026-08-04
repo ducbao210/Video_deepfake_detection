@@ -21,6 +21,8 @@ class HybridConvNeXtBiLSTM(nn.Module):
         if cnn_cfg.freeze_backbone:
             for param in self.encoder.parameters():
                 param.requires_grad = False
+            for param in self.encoder.stages[-1].parameters():
+                param.requires_grad = True
 
         feature_dim = self.encoder.num_features
         self.chunk_size = cnn_cfg.get("chunk_size", 64)

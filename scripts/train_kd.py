@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import sys
 from pathlib import Path
 
@@ -38,12 +39,12 @@ def _load_submodel(cfg, model_name, checkpoint_path, device, logger):
         ckpt_path = Path(checkpoint_path)
         if not ckpt_path.is_file():
             raise FileNotFoundError(f"Checkpoint not found: {ckpt_path}")
-        logger.info(f"Loading weights for '{model_name.capitalize()}' from {ckpt_path}")
+        logger.info(f"Loading weights for '{model_name.upper()}' from {ckpt_path}")
         ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
         model.load_state_dict(ckpt["model_state_dict"])
     else:
         logger.info(
-            f"'{model_name.capitalize()}' initialized from a pretrained backbone (no checkpoint provided)"
+            f"'{model_name.upper()}' initialized from a pretrained backbone (no checkpoint provided)"
         )
 
     return model.to(device)

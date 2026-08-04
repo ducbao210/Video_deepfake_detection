@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import sys
 from pathlib import Path
 
@@ -57,6 +58,8 @@ def main(cfg: DictConfig):
     model = build_model(cfg).to(device)
     checkpoint_path = cfg.inference.checkpoint
 
+    model_name_upper = cfg.model.name.upper()
+    logger.info(f"MODEL: {model_name_upper}")
     logger.info(f"Loading checkpoint from: {checkpoint_path}")
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"])

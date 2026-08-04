@@ -50,6 +50,12 @@ class VideoSwinDetector(nn.Module):
             for param in self.encoder.parameters():
                 param.requires_grad = False
 
+            for param in self.encoder.features[-1].parameters():
+                param.requires_grad = True
+
+            for param in self.encoder.norm.parameters():
+                param.requires_grad = True
+
         self.classifier = nn.Sequential(
             nn.Dropout(cls_cfg.dropout),
             nn.Linear(in_features, cls_cfg.num_classes),

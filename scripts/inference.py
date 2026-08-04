@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import sys
 import cv2
 import numpy as np
@@ -92,6 +93,7 @@ def main(cfg: DictConfig):
             downloaded_path = hf_hub_download(
                 repo_id=cfg.huggingface.repo_id,
                 filename=f"{cfg.huggingface.path_in_repo}/best.pth",
+                token=cfg.huggingface.token,
             )
             ckpt_path = Path(downloaded_path)
             logger.info(f"Download complete! Checkpoint used: {ckpt_path}")

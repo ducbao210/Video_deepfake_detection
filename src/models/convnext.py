@@ -22,6 +22,9 @@ class ConvNeXtDetector(nn.Module):
         if arch.get("freeze_backbone", False):
             for param in self.encoder.parameters():
                 param.requires_grad = False
+            # Unfreeze the final stage
+            for param in self.encoder.stages[-1].parameters():
+                param.requires_grad = True
 
         in_features = self.encoder.num_features
 
