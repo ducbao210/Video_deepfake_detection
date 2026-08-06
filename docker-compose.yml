@@ -6,14 +6,22 @@ services:
     container_name: deepfake-backend
     ports:
       - "8000:8000"
-    env_file: .env  # loads HF_TOKEN from here
+    env_file: .env
     volumes:
       - ./checkpoints:/app/checkpoints
+      - ./outputs:/app/outputs  # For model downloads
     environment:
       MODEL_NAME: convnext
       CHECKPOINT_PATH: /app/checkpoints/convnext/best.pth
       DEVICE: auto
+      TRANSFORMERS_OFFLINE: "0"  # Allow downloading models
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 5
 
   frontend:
     build:

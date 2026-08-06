@@ -1,15 +1,58 @@
 #!/usr/bin/env bash
 set -e
 
+# Check if Docker is running
+if ! docker info > /dev/null 2>&1; then
+    echo "Error: Docker is not running. Please start Docker first."
+    exit 1
+fi
+
+# Check if docker compose is available
+if ! docker compose version > /dev/null 2>&1; then
+    echo "Error: docker compose is not available."
+    exit 1
+fi
+
+# Create .env if it doesn't exist
 if [ ! -f .env ]; then
+    if [ ! -f .env.sample ]; then
+        echo "Error: .env.sample not found. Please create it first."
+        exit 1
+    fi
+    
     cp .env.sample .env
     echo "Created .env from .env.sample."
 
     read -rsp "Enter your Hugging Face token: " HF_TOKEN
     echo
 
-    sed -i.bak "s/^HF_TOKEN=.*/HF_TOKEN=$HF_TOKEN/" .env
-    rm -f .env.bak
+    if [ -z "$HF_TOKEN" ]; then
+        echo "Warning: No token provided. Model download may fail if the repo is private."
+    else
+        sed -i.bak "s/^HF_TOKEN=.*/HF_TOKEN=$HF_TOKEN/" .env
+        rm -f .env.bak
+    fi
 fi
 
-docker compose up --build
+# Create necessary directories
+mkdir -p checkpoints/convnext
+mkdir -p outputs/checkpoints
+
+echo "Building and starting containers..."
+docker compose up --build -d
+
+echo ""
+echo "=========================================="
+echo "  Deepfake Detection is starting..."
+echo "=========================================="
+echo ""
+echo "  Frontend: http://localhost:7860"
+echo "  Backend API: http://localhost:8000"
+echo "  API Docs: http://localhost:8000/docs"
+echo ""
+echo "  View logs: docker compose logs -f"
+echo "  Stop:      docker compose down"
+echo "=========================================="
+
+# Show logs
+docker compose logs -f --tail=50
