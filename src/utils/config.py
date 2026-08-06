@@ -28,7 +28,7 @@ def load_config(config_dir="configs", model_name=None):
                 model_name = item["model"]
                 break
 
-    configs = []
+    configs = [base_cfg]
 
     # Paths
     configs.append(OmegaConf.load(config_dir / "paths/default.yaml"))

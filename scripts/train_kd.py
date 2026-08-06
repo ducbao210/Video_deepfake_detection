@@ -64,7 +64,7 @@ def main(cfg: DictConfig):
     if "kd" not in cfg:
         raise ValueError(
             "Missing KD configuration. Run with:\n"
-            "  python scripts/train_kd.py +model=kd_config training=kd_training"
+            "  python scripts/train_kd.py +model=convnext_kd training=kd_training"
         )
 
     # Dataset & DataLoader

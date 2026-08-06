@@ -2,6 +2,7 @@ import importlib
 
 MODEL_REGISTRY = {
     "convnext": (".convnext", "ConvNeXtDetector"),
+    "convnext_kd": (".convnext", "ConvNeXtDetector"),
     "hybrid_bilstm": (".hybrid_convnext_bilstm", "HybridConvNeXtBiLSTM"),
     "video_swin": (".video_swin", "VideoSwinDetector"),
     "timesformer": (".timesformer", "TimeSformerDetector"),
