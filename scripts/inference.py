@@ -75,6 +75,11 @@ def main(cfg: DictConfig):
         else ("cuda" if torch.cuda.is_available() else "cpu")
     )
 
+    if "architecture" in cfg.model:
+        cfg.model.architecture.pretrained = False
+    if "cnn" in cfg.model:
+        cfg.model.cnn.pretrained = False
+        
     # Initialize the model
     model = build_model(cfg).to(device)
     checkpoint_path = Path(cfg.inference.checkpoint)

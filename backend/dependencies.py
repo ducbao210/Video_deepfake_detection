@@ -85,6 +85,11 @@ class ModelManager:
         else:
             device = torch.device(device_env)
 
+        if "architecture" in cfg.model and cfg.model.architecture.get("pretrained", False):
+            cfg.model.architecture.pretrained = False
+        elif "cnn" in cfg.model and cfg.model.cnn.get("pretrained", False):
+            cfg.model.cnn.pretrained = False
+
         model = build_model(cfg)
 
         ckpt_path = Path(checkpoint)

@@ -55,6 +55,11 @@ def main(cfg: DictConfig):
         pin_memory=cfg.dataloader.pin_memory,
     )
 
+    if "architecture" in cfg.model:
+        cfg.model.architecture.pretrained = False
+    if "cnn" in cfg.model:
+        cfg.model.cnn.pretrained = False
+
     # Load model weights
     model = build_model(cfg).to(device)
     checkpoint_path = Path(cfg.inference.checkpoint)
