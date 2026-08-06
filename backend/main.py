@@ -1,4 +1,4 @@
-import shutil
+import os
 import sys
 import tempfile
 import time
@@ -6,14 +6,14 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import torch
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from backend.dependencies import get_model_bundle
-from backend.schemas import HealthResponse, PredictionResponse
+from backend.dependencies import get_model_bundle, get_model_manager
+from backend.schemas import HealthResponse, ModelsResponse, PredictionResponse
 from scripts.inference import extract_frames_memory
 
 ALLOWED_SUFFIXES = {".mp4", ".avi", ".mov", ".mkv", ".webm"}
@@ -22,6 +22,7 @@ MAX_UPLOAD_BYTES = 200 * 1024 * 1024  # 200 MB
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Preload the default model on startup
     get_model_bundle()
     yield
 
@@ -52,8 +53,20 @@ def health():
     )
 
 
+@app.get("/models", response_model=ModelsResponse)
+def list_models():
+    """Return list of available models for inference."""
+    manager = get_model_manager()
+    models = manager.get_available_models()
+    default = os.getenv("MODEL_NAME", "convnext")
+    return ModelsResponse(models=models, default=default)
+
+
 @app.post("/predict", response_model=PredictionResponse)
-async def predict(file: UploadFile = File(...)):
+async def predict(
+    file: UploadFile = File(...),
+    model_name: str = Form(None),
+):
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in ALLOWED_SUFFIXES:
         raise HTTPException(
@@ -62,7 +75,26 @@ async def predict(file: UploadFile = File(...)):
             f"Supported formats: {sorted(ALLOWED_SUFFIXES)}",
         )
 
-    bundle = get_model_bundle()
+    # Use specified model or fall back to default
+    if not model_name:
+        model_name = os.getenv("MODEL_NAME", "convnext")
+
+    manager = get_model_manager()
+    available_models = manager.get_available_models()
+
+    if model_name not in available_models:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown model '{model_name}'. Available models: {available_models}",
+        )
+
+    try:
+        bundle = manager.get_model_bundle(model_name)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load model: {e}")
+
     cfg = bundle.cfg
 
     tmp_path = None

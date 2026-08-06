@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, List
 
 from pydantic import BaseModel, Field
 
@@ -30,6 +30,13 @@ class HealthResponse(BaseModel):
     model_name: str
     device: str
     checkpoint: str
+
+
+class ModelsResponse(BaseModel):
+    """Response schema for listing available models."""
+
+    models: List[str] = Field(..., description="List of available model names")
+    default: str = Field(..., description="Default model name")
 
 
 class ErrorResponse(BaseModel):

@@ -6,7 +6,19 @@ import requests
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 
-def analyze(video_path):
+def fetch_models():
+    """Fetch available models from the API."""
+    try:
+        resp = requests.get(f"{API_URL}/models", timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            return data["models"], data["default"]
+        return ["convnext"], "convnext"
+    except Exception:
+        return ["convnext"], "convnext"
+
+
+def analyze(video_path, model_name):
     if not video_path:
         return "Please select a video.", None
 
@@ -15,6 +27,7 @@ def analyze(video_path):
             resp = requests.post(
                 f"{API_URL}/predict",
                 files={"file": (os.path.basename(video_path), f, "video/mp4")},
+                data={"model_name": model_name},
                 timeout=180,
             )
     except requests.RequestException as e:
@@ -28,6 +41,7 @@ def analyze(video_path):
 
     summary = (
         f"## Prediction: **{data['label']}**\n\n"
+        f"- **Model**: {model_name}\n"
         f"- Fake probability: **{p * 100:.2f}%**\n"
         f"- Decision threshold: {data['threshold']}\n"
         f"- Frames analyzed: {data['num_frames_used']}\n"
@@ -35,6 +49,9 @@ def analyze(video_path):
     )
     return summary, {"REAL": 1.0 - p, "FAKE": p}
 
+
+# Fetch models on startup
+available_models, default_model = fetch_models()
 
 with gr.Blocks(title="Deepfake Video Detection") as demo:
     gr.Markdown(
@@ -44,13 +61,23 @@ with gr.Blocks(title="Deepfake Video Detection") as demo:
 
     with gr.Row():
         with gr.Column():
+            model_dropdown = gr.Dropdown(
+                choices=available_models,
+                value=default_model,
+                label="Select Model",
+                allow_custom_value=False,
+            )
             video_in = gr.Video(label="Input Video", sources=["upload"])
             btn = gr.Button("Analyze", variant="primary")
         with gr.Column():
             result_md = gr.Markdown()
             label_out = gr.Label(label="Confidence", num_top_classes=2)
 
-    btn.click(analyze, inputs=video_in, outputs=[result_md, label_out])
+    btn.click(
+        analyze,
+        inputs=[video_in, model_dropdown],
+        outputs=[result_md, label_out],
+    )
 
     gr.Markdown(
         "> The results are for reference only. The model was trained on the DFD dataset "

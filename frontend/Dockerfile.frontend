@@ -1,13 +1,20 @@
 FROM python:3.11-slim
 
-ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
 WORKDIR /app
 
-RUN pip install gradio==5.9.1 requests==2.32.3
+# Install dependencies
+RUN pip install gradio==5.9.1 requests==2.32.3 "pydantic<2.10"
 
+# Copy frontend code
 COPY frontend/ ./frontend/
 
+# Set API URL (can be overridden at runtime)
 ENV API_URL=http://backend:8000
+
 EXPOSE 7860
 
+# Run Gradio with proper settings for Docker
 CMD ["python", "frontend/app.py"]

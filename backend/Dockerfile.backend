@@ -6,32 +6,43 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# libgl1 and libglib2.0-0 are required by opencv-python
+# Install system dependencies for OpenCV
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libgl1 libglib2.0-0 \
+        libgl1 \
+        libglib2.0-0 \
+        libsm6 \
+        libxext6 \
+        libxrender-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements-serve.txt .
 
+# Install PyTorch first (CPU version for compatibility)
 ARG TORCH_INDEX=https://download.pytorch.org/whl/cpu
-
 RUN pip install --index-url ${TORCH_INDEX} \
-    torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 \
- && pip install -r requirements-serve.txt
+    torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1
 
+# Install other dependencies
+RUN pip install -r requirements-serve.txt
 
+# Copy source code
 COPY src/    ./src/
 COPY backend/ ./backend/
 COPY scripts/ ./scripts/
 COPY configs/ ./configs/
 
+# Set environment variables
 ENV MODEL_NAME=convnext \
     CHECKPOINT_PATH=/app/checkpoints/convnext/best.pth \
     DEVICE=auto
 
+# Create checkpoint directory
+RUN mkdir -p /app/checkpoints/convnext
+
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-    CMD python -c "import urllib.request;urllib.request.urlopen('http://localhost:8000/health')"
+# Healthcheck with longer start period for model loading
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"
 
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "info"]
