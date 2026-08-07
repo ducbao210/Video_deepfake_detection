@@ -31,7 +31,7 @@ def get_logger(log_cfg, name="DeepfakeDetection", log_file="train.log"):
     log_dir = Path(log_cfg.log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)
 
-    logger = logging.getLogger(name)
+    logger = logging.getLogger(name.upper())
 
     # Prevent adding duplicate handlers
     if logger.handlers:
