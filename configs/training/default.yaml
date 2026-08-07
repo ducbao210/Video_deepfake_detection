@@ -2,6 +2,7 @@
 training:
   epochs: 10
   learning_rate: 1e-4
+  backbone_lr_ratio: 0.1
   weight_decay: 1e-5
   optimizer:
     name: adamw

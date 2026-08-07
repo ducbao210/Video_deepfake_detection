@@ -1,26 +1,49 @@
 # src/training/optim.py
 import math
-
 import torch
 
 
 def build_optimizer(model, cfg):
-    """Build an optimizer based on cfg.training.optimizer.name."""
     name = cfg.training.optimizer.get("name", "adamw").lower()
-    lr = float(cfg.training.learning_rate)
+    base_lr = float(cfg.training.learning_rate)
     wd = float(cfg.training.weight_decay)
+    
+    backbone_lr_ratio = float(cfg.training.get("backbone_lr_ratio", 0.1))
+    backbone_lr = base_lr * backbone_lr_ratio
 
-    params = [p for p in model.parameters() if p.requires_grad]
+    head_keywords = ["classifier", "lstm", "attention", "head"]
+    no_decay_keywords = ["bias", "norm"]
+
+    param_groups = [
+        {"params": [], "lr": base_lr, "weight_decay": wd, "name": "head_decay"},
+        {"params": [], "lr": base_lr, "weight_decay": 0.0, "name": "head_no_decay"},
+        {"params": [], "lr": backbone_lr, "weight_decay": wd, "name": "backbone_decay"},
+        {"params": [], "lr": backbone_lr, "weight_decay": 0.0, "name": "backbone_no_decay"},
+    ]
+
+    for param_name, param in model.named_parameters():
+        if not param.requires_grad:
+            continue
+
+        is_head = any(kw in param_name.lower() for kw in head_keywords)
+        is_no_decay = (param.ndim <= 1) or any(kw in param_name.lower() for kw in no_decay_keywords)
+
+        if is_head and not is_no_decay:
+            param_groups[0]["params"].append(param)
+        elif is_head and is_no_decay:
+            param_groups[1]["params"].append(param)
+        elif not is_head and not is_no_decay:
+            param_groups[2]["params"].append(param)
+        else:
+            param_groups[3]["params"].append(param)
 
     if name == "adamw":
-        return torch.optim.AdamW(params, lr=lr, weight_decay=wd)
+        return torch.optim.AdamW(param_groups)
     if name == "adam":
-        return torch.optim.Adam(params, lr=lr, weight_decay=wd)
+        return torch.optim.Adam(param_groups)
     if name == "sgd":
         return torch.optim.SGD(
-            params,
-            lr=lr,
-            weight_decay=wd,
+            param_groups,
             momentum=cfg.training.optimizer.get("momentum", 0.9),
             nesterov=True,
         )
