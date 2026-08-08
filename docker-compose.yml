@@ -3,6 +3,9 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile.backend
+      args:
+        # If there is no TORCH_INDEX environment variable, default to the official PyTorch CPU index
+        TORCH_INDEX: ${TORCH_INDEX:-https://download.pytorch.org/whl/cpu}
     container_name: deepfake-backend
     ports:
       - "8000:8000"
@@ -12,10 +15,17 @@ services:
       - ./outputs:/app/outputs  # For model downloads
     environment:
       MODEL_NAME: convnext
-      CHECKPOINT_PATH: /app/checkpoints/convnext/best.pth
       DEVICE: auto
       TRANSFORMERS_OFFLINE: "0"  # Allow downloading models
     restart: unless-stopped
+    # Enable GPU support if available
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
       interval: 30s
