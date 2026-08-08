@@ -8,4 +8,4 @@ logging:
   save_checkpoint: true
   save_last: true
   save_best_only: true
-  checkpoint_dir: ${output_dir}/checkpoints
+  checkpoint_dir: checkpoints/${experiment_name}

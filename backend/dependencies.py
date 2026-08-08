@@ -73,12 +73,33 @@ class ModelManager:
         from src.data.transforms import get_val_transforms
         from src.models import build_model
 
-        checkpoint = os.getenv(
-            "CHECKPOINT_PATH",
-            str(ROOT / "outputs" / model_name / "checkpoints" / "best.pth"),
-        )
-        cfg = load_backend_config(model_name, checkpoint)
+        default_model = os.getenv("MODEL_NAME", "convnext")
+        env_ckpt = os.getenv("CHECKPOINT_PATH")
+        ckpt_dir = Path(os.getenv("CHECKPOINT_DIR", str(ROOT / "checkpoints")))
 
+        if env_ckpt and model_name == default_model:
+            checkpoint = env_ckpt
+        else:
+            checkpoint = str(ckpt_dir / model_name / "best.pth")
+
+        cfg = load_backend_config(model_name, checkpoint)
+        kd_section = cfg.get("kd")
+        if kd_section is None:
+            kd_training_path = ROOT/ "configs" / "training" / "kd_training.yaml"
+            if kd_training_path.exists():
+                kd_training_cfg = OmegaConf.load(kd_training_path)
+                kd_section = kd_training_cfg.get("kd")
+        if kd_section and "student" in kd_section:
+            student_name = kd_section.student.model
+            student_cfg_path = ROOT / "configs" / "model" / f"{student_name}.yaml"
+            if student_cfg_path.exists():
+                student_model_cfg = OmegaConf.load(student_cfg_path)
+                cfg_dict = OmegaConf.to_container(cfg, resolve=True)
+                student_dict = OmegaConf.to_container(student_model_cfg, resolve=True)
+                cfg_dict["model"] = student_dict["model"]
+                cfg_dict["model"]["name"] = model_name
+                cfg = OmegaConf.create(cfg_dict)
+            
         device_env = os.getenv("DEVICE", "auto")
         if device_env == "auto":
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -109,13 +130,10 @@ class ModelManager:
                     repo_id=cfg.huggingface.repo_id,
                     filename=f"{cfg.huggingface.path_in_repo}/best.pth",
                     token=cfg.huggingface.token,
-                    local_dir=ckpt_path.parent,
                 )
-                downloaded_path = Path(downloaded_path)
 
                 ckpt_path.parent.mkdir(parents=True, exist_ok=True)
-                if downloaded_path.resolve() != ckpt_path.resolve():
-                    shutil.copy2(downloaded_path, ckpt_path)
+                shutil.copy2(downloaded_path, ckpt_path)
 
                 print(f"Download complete! Checkpoint saved at: {ckpt_path}")
             except Exception as e:
@@ -126,11 +144,29 @@ class ModelManager:
                 )
 
         state = torch.load(ckpt_path, map_location=device, weights_only=False)
-        model.load_state_dict(state["model_state_dict"])
+
+        saved_name = state.get("model_name") if isinstance(state, dict) else None
+        if saved_name and saved_name != model_name:
+            raise RuntimeError(
+                f"Checkpoint {ckpt_path} belongs to model '{saved_name}', "
+                f"not '{model_name}'."
+            )
+
+        missing, unexpected = model.load_state_dict(
+            state["model_state_dict"], strict=False
+        )
+        if missing or unexpected:
+            raise RuntimeError(
+                f"Checkpoint {ckpt_path} does not match the architecture of '{model_name}': "
+                f"Missing {len(missing)} keys (e.g., {missing[:3]}), "
+                f"Unexpected {len(unexpected)} keys (e.g., {unexpected[:3]}). "
+                f"Please check CHECKPOINT_DIR / CHECKPOINT_PATH."
+            )
+
         model.to(device).eval()
+        print(f"[model] Loaded '{model_name}' from {ckpt_path} on {device}")
 
         return ModelBundle(model, get_val_transforms(cfg), cfg, device)
-
 
 _model_manager: Optional[ModelManager] = None
 
