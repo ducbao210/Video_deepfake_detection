@@ -4,8 +4,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile.backend
       args:
-        # If there is no TORCH_INDEX environment variable, default to the official PyTorch CPU index
-        TORCH_INDEX: ${TORCH_INDEX:-https://download.pytorch.org/whl/cpu}
+        TORCH_INDEX: https://download.pytorch.org/whl/cpu
     container_name: deepfake-backend
     ports:
       - "8000:8000"
@@ -18,14 +17,7 @@ services:
       DEVICE: auto
       TRANSFORMERS_OFFLINE: "0"  # Allow downloading models
     restart: unless-stopped
-    # Enable GPU support if available
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    # This service is CPU-only.
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
       interval: 30s

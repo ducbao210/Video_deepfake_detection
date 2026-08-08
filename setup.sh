@@ -35,16 +35,8 @@ if [ ! -f .env ]; then
     fi
 
     echo ""
-    
-    # Setup GPU / CPU Support
-    read -p "Do you want to build with GPU (CUDA) support? (y/N): " USE_GPU
-    if [[ "$USE_GPU" =~ ^[Yy]$ ]]; then
-        TORCH_INDEX="https://download.pytorch.org/whl/cu121"
-        echo "Configuring for GPU (CUDA 12.1)..."
-    else
-        TORCH_INDEX="https://download.pytorch.org/whl/cpu"
-        echo "Configuring for CPU..."
-    fi
+    TORCH_INDEX="https://download.pytorch.org/whl/cpu"
+    echo "Configuring for CPU-only PyTorch install..."
 
     if grep -q "^TORCH_INDEX=" .env; then
         sed -i.bak "s|^TORCH_INDEX=.*|TORCH_INDEX=$TORCH_INDEX|" .env

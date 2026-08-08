@@ -19,7 +19,7 @@ COPY requirements-serve.txt .
 
 # Install PyTorch first (CPU version for compatibility)
 ARG TORCH_INDEX=https://download.pytorch.org/whl/cpu
-RUN pip install --index-url ${TORCH_INDEX} \
+RUN pip install --default-timeout=120 --retries 10 --disable-pip-version-check --index-url ${TORCH_INDEX} \
     torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1
 
 # Install other dependencies
