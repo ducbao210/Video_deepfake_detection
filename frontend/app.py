@@ -79,11 +79,9 @@ with gr.Blocks(title="Deepfake Video Detection") as demo:
         outputs=[result_md, label_out],
     )
 
-    gr.Markdown(
-        "> The results are for reference only. The model was trained on the DFD dataset "
-        "and may perform less accurately on videos outside its training distribution."
-    )
-
+    gr.Markdown("---")
+    gr.Markdown("https://github.com/ducbao210/Video_deepfake_detection")
+    gr.Markdown("---")
 
 if __name__ == "__main__":
     demo.launch(server_name="0.0.0.0", server_port=7860)
