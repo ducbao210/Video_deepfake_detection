@@ -13,35 +13,14 @@ build/
 dist/
 *.egg-info/
 
-# Logs & TensorBoard
-logs/
-*.log
-runs/
-tensorboard/
-
 # Models
 checkpoints/
-weights/
-*.pth
-*.pt
-*.ckpt
-*.onnx
-
 # Hydra
 outputs/
 multirun/
 
 # Data
-data/*
-!data/raw/
-!data/processed/
-!data/split/
-!data/raw/list_name.py
-!data/split/*.csv
-!data/name.txt
-
-data/raw/*
-data/processed/*
+data/
 
 # Cache
 .cache/
